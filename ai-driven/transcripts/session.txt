@@ -133,3 +133,173 @@
 
      > [redacted] typecheck
      > tsc --noEmit
+
+● Bash(npm run save-transcript >/dev/null && cd .. && git add .gitignore README.md ai-driven && git status --short && git commit -qm "Scaffold ai-driven TS project with node:test harness and session transcript
+
+       Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1)
+  ⎿  A  .gitignore
+     A  README.md
+     A  ai-driven/package-lock.json
+     A  ai-driven/package.json
+     A  ai-driven/src/TicTacToe.test.ts
+     A  ai-driven/src/TicTacToe.ts
+     A  ai-driven/transcripts/34cdd764-869a-4f0c-966f-7bb4dcb47dde.jsonl
+     A  ai-driven/tsconfig.json
+      M self-driven/README.md
+     d8c900d Scaffold ai-driven TS project with node:test harness and session transcript
+
+● I've set up the project in `ai-driven/` and committed it as `d8c900d`. The test runner and type check both run cleanly; the one test just confirms the setup works, since nothing is implemented yet.
+
+  **What's in it**
+  - **Tests use Node's built-in test runner.** Node 26 can run `.ts` files directly, so the only installs are `typescript` and `@types/node`, used for type checking. Commands: `npm test` and `npm run typecheck`.
+  - **`src/TicTacToe.ts`** has placeholder methods that throw "not implemented":
+    - A `Board` is a 4×4 grid where each cell is `'X'`, `'O'` or `null`.
+    - The board is passed in when the game is created.
+    - `checkWinner()` returns `'X'`, `'O'` or `null`.
+    - `anyMovesLeft()` and `isGameOver()` return true or false.
+  - **Transcripts:** `npm run save-transcript` copies this session's transcript into `ai-driven/transcripts/`. I'll run it before every commit.
+  - I also committed the root `.gitignore` (it keeps `node_modules` out of git) and `README.md`. Both were previously untracked.
+
+  **Proposed test cases (one red → green cycle each)**
+
+  *`checkWinner`*
+  1. Empty board → `null`
+  2. Each of the 4 rows filled by one player → that player
+  3. Each of the 4 columns → that player
+  4. Both diagonals → that player
+  5. All four corners → that player
+  6. 2×2 box at each of the 9 positions → that player
+  7. Works for `O` as well as `X`
+  8. A line containing both players → `null`
+  9. Three in a row with the fourth cell empty → `null`
+  10. Full board with no win → `null`
+  11. Board with an invalid shape (not 4×4) → throws an error
+
+  *`anyMovesLeft`*: empty board → true, one empty cell left → true, full board → false
+
+  *`isGameOver`*: there's a winner but empty cells remain → true, full board with no winner → true, no winner and moves left → false
+
+  **Questions before I write the first failing tests**
+  - **Both players winning:** if a board shows a win for both X and O, should it throw an error or return something like `'both'`? I'd go with throwing an error.
+  - **Checking the board:** should we check whether the board is even possible (for example, X with 10 pieces and O with 2)? The prompt doesn't ask for it, so I'd skip it.
+  - **Board shape:** should the board go to the constructor (as now) or be passed to each method? The constructor reads more cleanly.
+
+  I left one file out of the commit: `self-driven/README.md` has a change that isn't mine. Only this session's transcript is saved; the other `.jsonl` files in the transcripts folder weren't included.
+
+> those tests look good to me, one thing is that in isGameOver there's no need for 'but empty cells remain' - either there's a winner or there are no more moves left. For both players winning, we don't need to throw an error we can just return whichever we find first. We also don't need to check if the board state is valid. For the class's api, we can say that the board should be supplied to each call since we don't manage the board state, we just check win conditions. Further the api they specified more closely matches static methods on an abstract class, let me know what you think of this.
+
+● Bash(cd /home/ksharmarke/claude-stuffs/job-app-projects/Simplisafe-8249577/ai-driven && cat > src/TicTacToe.ts <<'EOF'
+       export type Player = 'X' | 'O';
+       export type Cell = Player | null;
+       type Row = [Cell, Cell, Cell, Cell];
+       // Tuple type makes the 4x4 shape a compile-time guarantee, so no runtime shape check.
+       export type Board = [Row, Row, Row, Row];
+
+       // Stateless: callers own the board, we only evaluate it.
+       export abstract class TicTacToe {
+         public static checkWinner(board: Board): Player | null {
+           throw new Error('not implemented');
+         }
+
+         public static anyMovesLeft(board: Board): boolean {
+           throw new Error('not implemented');
+         }
+
+         public static isGameOver(board: Board): boolean {
+           throw new Error('not implemented');
+         }
+       }
+       EOF
+       cat > src/TicTacToe.test.ts <<'EOF'
+       import { describe, test } from 'node:test';
+       import assert from 'node:assert/strict';
+       import { TicTacToe, type Board, type Player } from './TicTacToe.ts';
+
+       // Build a board from 4 strings of 'X' / 'O' / '.' (empty).
+       const parse = (...rows: string[]): Board =>
+         rows.map((r) => [...r].map((c) => (c === '.' ? null : c))) as Board;
+
+       // Empty board with `player` placed on the given [row, col] cells.
+       const place = (player: Player, cells: [number, number][]): Board => {
+         const board = parse('....', '....', '....', '....');
+         for (const [r, c] of cells) board[r][c] = player;
+         return board;
+       };
+
+       const range = [0, 1, 2, 3];
+       const EMPTY = parse('....', '....', '....', '....');
+       // Full board with no winning pattern: adjacent rows are complements, so every line/box/corner set is mixed.
+       const DRAW = parse('XXOO', 'OOXX', 'XXOO', 'OOXX');
+
+       const winningLines: [string, [number, number][]][] = [
+         ...range.map((r) => [`row ${r}`, range.map((c) => [r, c])] as [string, [number, number][]]),
+         ...range.map((c) => [`column ${c}`, range.map((r) => [r, c])] as [string, [number, number][]]),
+         ['main diagonal', range.map((i) => [i, i])],
+         ['anti diagonal', range.map((i) => [i, 3 - i])],
+         ['four corners', [[0, 0], [0, 3], [3, 0], [3, 3]]],
+         ...[0, 1, 2].flatMap((r) =>
+           [0, 1, 2].map((c) => [`2x2 box at ${r},${c}`, [[r, c], [r, c + 1], [r + 1, c], [r + 1, c + 1]]] as [string, [number, number][]]),
+         ),
+       ];
+
+       describe('checkWinner', () => {
+         test('empty board has no winner', () => {
+           assert.equal(TicTacToe.checkWinner(EMPTY), null);
+         });
+
+         for (const player of ['X', 'O'] as Player[]) {
+           for (const [name, cells] of winningLines) {
+             test(`${player} wins by ${name}`, () => {
+               assert.equal(TicTacToe.checkWinner(place(player, cells)), player);
+             });
+           }
+         }
+
+         test('a line containing both players is not a win', () => {
+           assert.equal(TicTacToe.checkWinner(parse('XXXO', '....', '....', '....')), null);
+         });
+
+         test('three in a line with the fourth empty is not a win', () => {
+           assert.equal(TicTacToe.checkWinner(parse('XXX.', '....', '....', '....')), null);
+         });
+
+         test('full board with no winning pattern has no winner', () => {
+           assert.equal(TicTacToe.checkWinner(DRAW), null);
+         });
+       });
+
+       describe('anyMovesLeft', () => {
+         test('empty board has moves left', () => {
+           assert.equal(TicTacToe.anyMovesLeft(EMPTY), true);
+         });
+
+         test('board with one empty cell has moves left', () => {
+           assert.equal(TicTacToe.anyMovesLeft(parse('XXOO', 'OOXX', 'XXOO', 'OOX.')), true);
+         });
+
+         test('full board has no moves left', () => {
+           assert.equal(TicTacToe.anyMovesLeft(DRAW), false);
+         });
+       });
+
+       describe('isGameOver', () => {
+         test('game is over when there is a winner', () => {
+           assert.equal(TicTacToe.isGameOver(parse('XXXX', '....', '....', '....')), true);
+         });
+
+         test('game is over when the board is full with no winner', () => {
+           assert.equal(TicTacToe.isGameOver(DRAW), true);
+         });
+
+         test('game is not over with no winner and moves left', () => {
+           assert.equal(TicTacToe.isGameOver(parse('XO..', '....', '....', '....')), false);
+         });
+       });
+       EOF
+       npm run typecheck && npm test 2>&1 | grep -E '^ℹ (tests|pass|fail)')
+  ⎿  > [redacted] typecheck
+     > tsc --noEmit
+
+     ℹ tests 50
+     ℹ pass 0
+     ℹ fail 50

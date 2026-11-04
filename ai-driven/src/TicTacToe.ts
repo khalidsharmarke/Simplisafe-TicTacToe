@@ -1,23 +1,20 @@
 export type Player = 'X' | 'O';
 export type Cell = Player | null;
-export type Board = Cell[][]; // 4 rows x 4 columns
+type Row = [Cell, Cell, Cell, Cell];
+// Tuple type makes the 4x4 shape a compile-time guarantee, so no runtime shape check.
+export type Board = [Row, Row, Row, Row];
 
-export class TicTacToe {
-  private readonly board: Board;
-
-  constructor(board: Board) {
-    this.board = board;
-  }
-
-  public checkWinner(): Player | null {
+// Stateless: callers own the board, we only evaluate it.
+export abstract class TicTacToe {
+  public static checkWinner(board: Board): Player | null {
     throw new Error('not implemented');
   }
 
-  public anyMovesLeft(): boolean {
+  public static anyMovesLeft(board: Board): boolean {
     throw new Error('not implemented');
   }
 
-  public isGameOver(): boolean {
+  public static isGameOver(board: Board): boolean {
     throw new Error('not implemented');
   }
 }
