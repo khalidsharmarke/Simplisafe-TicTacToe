@@ -144,6 +144,7 @@ Adding it up gives about **6n² cell reads**, so:
 
 O(n²) time is the best possible: a board with no winner has n² cells, and you can't confirm nobody won without looking at every one.
 
-Trade-off not taken:
+Trade-offs not taken:
 
 - **Fewer reads**: each cell is read up to about 6 times (once per pattern it belongs to). A single pass that counts each player per row, column and diagonal would read each cell once. It would still be O(n²) and the code would be harder to follow.
+- **Checking only the last move**: the bigger saving needs a solver that keeps state. If it knew which cell was just played, it would only need to check the patterns that pass through that cell: 3 to 7 of them on a 4x4 board, or O(n) cells on an n×n board, instead of a full O(n²) scan. That isn't possible with this API, because each call receives a whole board with no history of moves.

@@ -727,3 +727,98 @@
 
      - **`anyMovesLeft` memory**: `board.some((row) => row.includes(null))` would avoid the copy (O(1) extra space). `flat()` was kept because it reads more simply, and the copy is only 16 cells.
      - **Fewer reads**: each cell is read up to about 6 times (once per pattern it belongs to). A single pass that counts each player per row, column and diagonal would read each cell once. It would still be O(n²) and the code would be harder to follow.
+
+● Bash(python3 - <<'EOF'
+       reps = {
+        'src/TicTacToe.ts': [
+         ("    return board.flat().includes(null);", "    return board.some((row) => row.includes(null));"),
+        ],
+        'README.md': [
+         ("- `anyMovesLeft`: `board.flat()` lays the 4 rows out as one list of 16 cells, and `.includes(null)` asks \"is any of them empty?\"",
+          "- `anyMovesLeft`: `board.some((row) => row.includes(null))` asks \"does any row contain an empty cell?\". It stops at the first row that does, and it doesn't copy the board."),
+         ("| `anyMovesLeft` | 16 cell reads | one 16-cell list from `flat()` |\n| `isGameOver` | 76 + 16 = 92 cell reads | same as `anyMovesLeft` |",
+          "| `anyMovesLeft` | 16 cell reads | none |\n| `isGameOver` | 76 + 16 = 92 cell reads | none |"),
+         ("| `anyMovesLeft` | O(n²) | O(n²) for the `flat()` copy |\n| `isGameOver` | O(n²) | O(n²), from `anyMovesLeft` |",
+          "| `anyMovesLeft` | O(n²) | O(1) extra |\n| `isGameOver` | O(n²) | O(1) extra |"),
+         ("Trade-offs, neither worth changing at 4x4:\n\n- **`anyMovesLeft` memory**: `board.some((row) => row.includes(null))` would avoid the copy (O(1) extra space). `flat()` was kept because it reads more simply, and the copy is only 16 cells.\n- **Fewer reads**:",
+          "Trade-off not taken:\n\n- **Fewer reads**:"),
+        ],
+       }
+       for p, pairs in reps.items():
+           s = open(p).read()
+           for a, b in pairs:
+               assert s.count(a) == 1, (p, a[:40])
+               s = s.replace(a, b)
+           open(p, 'w').write(s)
+       EOF
+       npm run typecheck >/dev/null && npm test 2>&1 | grep -E '^ℹ (pass|fail)' && npm run save-transcript >/dev/null && git add -A . && git commit -qm "anyMovesLeft: use some() to avoid copying the board
+
+       Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1)
+  ⎿  ℹ pass 50
+     ℹ fail 0
+     4d49899 anyMovesLeft: use some() to avoid copying the board
+
+● I've switched `anyMovesLeft` to `board.some((row) => row.includes(null))`, committed as `4d49899`. All 50 tests still pass and the type check is clean. It no longer copies the board, and it stops at the first row with an empty cell. I updated the README's complexity tables and explanations to match: `anyMovesLeft` and `isGameOver` now need no extra memory.
+
+  ## Fewer reads: two options
+
+  Right now each cell can be read up to about 6 times, once for each pattern it belongs to, for 76 reads in the worst case. Both options below read each of the 16 cells exactly once.
+
+  **A. One running total per pattern.** Count X as +1, O as −1 and empty as 0, and keep a total for each of the 19 patterns. A total of +4 is only possible if all four cells are X, and −4 only if all four are O.
+
+  ```ts
+  // Built once: for each cell, the numbers of the patterns that contain it.
+  const sums = new Array(19).fill(0);
+  for (let r = 0; r < 4; r++)
+    for (let c = 0; c < 4; c++) {
+      const v = board[r][c] === 'X' ? 1 : board[r][c] === 'O' ? -1 : 0;
+      if (!v) continue;
+      for (const p of PATTERNS_FOR_CELL[r][c]) {
+        sums[p] += v;
+        if (Math.abs(sums[p]) === 4) return v > 0 ? 'X' : 'O';
+      }
+    }
+  return null;
+  ```
+
+  This cuts reads from 76 to 16, but each filled cell still updates every total it belongs to, so the worst case is still 76 updates. The work has moved, not shrunk. It also needs an extra lookup table from each cell to its patterns.
+
+  **B. Represent each player's pieces as one number.** There are 16 cells, so each player's pieces fit in a 16-bit number, with bit `r*4 + c` set when they own that cell. Each pattern also becomes a 16-bit number (its "mask"), and a player wins if every bit in a pattern's mask is set in their number.
+
+  ```ts
+  const MASKS = WIN_PATTERNS.map((p) => p.reduce((m, [r, c]) => m | (1 << (r * 4 + c)), 0));
+
+  let x = 0, o = 0;
+  board.forEach((row, r) => row.forEach((v, c) => {
+    if (v === 'X') x |= 1 << (r * 4 + c);
+    else if (v === 'O') o |= 1 << (r * 4 + c);
+  }));
+  for (const m of MASKS) {
+    if ((x & m) === m) return 'X';
+    if ((o & m) === m) return 'O';
+  }
+  return null;
+  ```
+
+  This takes 16 reads, then 19 checks that are each a single bitwise AND and compare. `anyMovesLeft` would become `(x | o) !== 0xFFFF`. Game engines commonly use this technique. One limit: JavaScript bitwise operators only work on 32 bits, so beyond a 5×5 board you'd need `BigInt`.
+
+  ## My recommendation: keep what we have
+
+  - **The current version often reads far fewer than 76 cells.** It skips a pattern as soon as its first cell is empty or a cell doesn't match, so a sparse board costs much less than the worst case. The 16-read options always read all 16 cells.
+  - **The speed difference isn't measurable here.** A cell read is a simple array lookup, and at 4×4 we're comparing about 76 cheap operations with about 35.
+  - **The current version is the easiest to check by eye.** A reviewer can compare the list of patterns directly against the five win conditions in the prompt. Bit masks and running totals are harder to verify.
+  - **The real saving needs a stateful API, which we ruled out.** If the solver knew which move was just played, it would only need to check the 3–7 patterns that pass through that cell. That is far less work than any full scan.
+
+  Option B is the one worth building if you want to show a performance-minded approach. It would be a small change, and the existing 50 tests would cover it without changes.
+
+> Lets keep what we have, but I want to note the real savings point you made in the time complexity section.
+
+● Edit(/home/ksharmarke/claude-stuffs/job-app-projects/Simplisafe-8249577/ai-driven/README.md)
+  ⎿  - It would still be O(n²) and the code would be harder to follow.
+     + It would still be O(n²) and the code would be harder to follow.
+     + - **Checking only the last move**: the bigger saving needs a solver that keeps state. If it knew which cell was just played, it would only need to check the patterns that pass through that cell: 3 to 7 of them on a 4x4 board, or O(n) cells on an n×n board, instead of a full O(n²) scan. That isn't possible with this API, because each call receives a whole board with no history of moves.
+  ⎿  The file /home/ksharmarke/claude-stuffs/job-app-projects/Simplisafe-8249577/ai-driven/README.md has been updated successfully. (note: the file had been modified on disk since you last read it — the edit applied cleanly, but the file contains other changes not in your context. Read it before edits that depend on surrounding content.)
+
+● Bash(sed -i 's/^Trade-off not taken:$/Trade-offs not taken:/' README.md && npm run save-transcript >/dev/null && git add -A . && git commit -qm "README: note incremental last-move check as the real saving
+
+       Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1)
