@@ -11,7 +11,7 @@ export abstract class TicTacToe {
   }
 
   public static anyMovesLeft(board: Board): boolean {
-    throw new Error('not implemented');
+    return board.flat().includes(null);
   }
 
   public static isGameOver(board: Board): boolean {
