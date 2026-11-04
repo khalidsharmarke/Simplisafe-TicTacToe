@@ -850,3 +850,34 @@
        npm run save-transcript >/dev/null && git add -A . && git commit -qm "README: describe running-total and bitboard alternatives under fewer reads
 
        Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1)
+  ⎿  dfd63ab README: describe running-total and bitboard alternatives under fewer reads
+
+● I've added both approaches as sub-points under "Fewer reads" in the README, described in words only with no code. Committed as `dfd63ab`.
+
+  - **One running total per pattern:** X counts as +1, O as −1 and empty as 0. A total of ±4 means one player owns all four cells. This reads 16 cells instead of 76, but it can still make up to 76 updates to the totals, so the work moves rather than shrinks.
+  - **Each player's pieces as one number:** each player's pieces are stored as a 16-bit number, and each pattern as a mask. A player wins when `(pieces & mask) === mask`. That's 16 reads plus 19 cheap checks, and `anyMovesLeft` becomes `(x | o) !== 0xFFFF`. Past a 5×5 board it would need `BigInt`.
+
+  I also rewrote the paragraph's intro. It now says that neither option is a clear win at 4×4, because the current version often reads fewer than 16 cells on a sparse board.
+
+> for the sake of being complete in our description, add to the description of the need for a 'last move' section that if we knew what the last move was we could style the code more towards a bfs for each win condition instead of the linear scan we have now
+
+● Bash(python3 - <<'EOF'
+       p='README.md'
+       s=open(p).read()
+       old="That isn't possible with this API, because each call receives a whole board with no history of moves.\n"
+       new="""That isn't possible with this API, because each call receives a whole board with no history of moves.
+         - Knowing the last move would also change how the code is organised. Instead of scanning every pattern, it would search outward from that cell, similar in spirit to a BFS rooted at the last move, checking only the win conditions that can include it:
+           - walk left/right along its row, and up/down its column;
+           - walk along a diagonal only if the cell sits on one;
+           - check the corners only if the cell is a corner;
+           - check only the (up to 4) 2x2 boxes that contain it.
+
+           The search stops as soon as it reaches a cell that is empty or belongs to the other player, or once it has found four in a row.
+       """
+       assert s.count(old)==1
+       open(p,'w').write(s.replace(old,new))
+       EOF
+       npm run save-transcript >/dev/null && git add -A . && git commit -qm "README: describe search-from-last-move alternative
+
+       Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1)
+  ⎿  989c881 README: describe search-from-last-move alternative
