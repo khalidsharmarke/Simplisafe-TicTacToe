@@ -647,3 +647,83 @@
 
        Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1)
   ⎿  c0f7c16 Document time and space complexity
+
+● The new section ended up above the "other two methods" subsection, which left that subsection under the wrong heading. Moving it back where it belongs:
+
+● Bash(python3 - <<'EOF'
+       p='README.md'
+       s=open(p).read()
+       i=s.index('### The other two methods')
+       other=s[i:]
+       s=s[:i].rstrip('\n')+'\n'
+       j=s.index('## Time and space complexity')
+       s=s[:j]+other.rstrip('\n')+'\n\n'+s[j:]
+       open(p,'w').write(s)
+       EOF
+       grep -n '^##' README.md && npm run save-transcript >/dev/null && git add -A . && git commit -q --amend --no-edit && git log --oneline -1)
+  ⎿  5:## Running the tests
+     18:## Usage
+     45:## How `checkWinner` works
+     49:### Step 1: list the winning patterns (lines 7-20)
+     83:### Step 2: check each pattern (lines 24-30)
+     98:### Why it's efficient
+     108:### The other two methods
+     113:## Time and space complexity
+     117:### Concrete cost on the 4x4 board
+     126:### Scaling to an n×n board
+     a927219 Document time and space complexity
+
+● I've added a "Time and space complexity" section at the end of `ai-driven/README.md`, committed as `a927219`.
+
+  **On the 4×4 board** every method takes constant time, because the board never grows. The README gives the actual cost per method:
+
+  | | Work per call (worst case) | Extra memory |
+  |---|---|---|
+  | Winning patterns (built once at load) | 19 patterns, 76 positions | 76 stored positions |
+  | `checkWinner` | 76 cell reads | none |
+  | `anyMovesLeft` | 16 cell reads | one 16-cell list from `flat()` |
+  | `isGameOver` | 92 cell reads | same as `anyMovesLeft` |
+
+  **On an n×n board**, to show how the approach scales:
+  - Every method takes O(n²) time. The winning patterns cover about 6n² cells in total: n rows and n columns of n cells each, plus (n−1)² boxes of 4 cells each.
+  - That is the best possible, because you can't confirm a board has no winner without reading all n² cells.
+  - `checkWinner` needs only constant extra memory.
+  - `anyMovesLeft` (and so `isGameOver`) uses O(n²) memory, because `flat()` copies the board into one list.
+
+  **Two trade-offs are noted but not changed:**
+  - **`anyMovesLeft` memory:** `board.some(row => row.includes(null))` would avoid the copy and need constant memory. `flat()` reads more simply, and at 4×4 the copy is only 16 cells.
+  - **Fewer reads:** each cell is read up to about 6 times, once per pattern it belongs to. A single pass that counts each player per row, column and diagonal would read each cell once, but it's still O(n²) and the code would be harder to follow.
+
+  I rewrote that commit to fix where the new section first landed in the README. That's safe because nothing has been pushed.
+
+> lets implement the first trade off and discuss the second, what does a solution with fewer reads look like?
+
+● Bash(grep -n -E 'flat|anyMovesLeft|copy|Fewer reads|Trade-offs' README.md src/TicTacToe.ts)
+  ⎿  src/TicTacToe.ts:19:  ...[0, 1, 2].flatMap((r) => [0, 1, 2].map((c) => [at(r, c), at(r, c + 1), at(r + 1, c), at(r + 1, c + 1)])),
+     src/TicTacToe.ts:32:  public static anyMovesLeft(board: Board): boolean {
+     src/TicTacToe.ts:33:    return board.flat().includes(null);
+     src/TicTacToe.ts:37:    return TicTacToe.checkWinner(board) !== null || !TicTacToe.anyMovesLeft(board);
+     README.md:33:TicTacToe.anyMovesLeft(board); // true
+     README.md:40:| `anyMovesLeft(board)` | `true` if at least one cell is empty |
+     README.md:72:  In the code, `[0, 1, 2].flatMap((r) => [0, 1, 2].map((c) => ...))` is a nested loop: "for every row r in 0-2, for every column c in 0-2, build that box". `flatMap` joins the three rows of results into one list of 9 boxes, and the leading `...` adds them to `WIN_PATTERNS` one by one.
+     README.md:110:- `anyMovesLeft`: `board.flat()` lays the 4 rows out as one list of 16 cells, and `.includes(null)` asks "is any of them empty?"
+     README.md:123:| `anyMovesLeft` | 16 cell reads | one 16-cell list from `flat()` |
+     README.md:124:| `isGameOver` | 76 + 16 = 92 cell reads | same as `anyMovesLeft` |
+     README.md:142:| `anyMovesLeft` | O(n²) | O(n²) for the `flat()` copy |
+     README.md:143:| `isGameOver` | O(n²) | O(n²), from `anyMovesLeft` |
+     README.md:147:Trade-offs, neither worth changing at 4x4:
+     README.md:149:- **`anyMovesLeft` memory**: `board.some((row) => row.includes(null))` would avoid the copy (O(1) extra space). `flat()` was kept because it reads more simply, and the copy is only 16 cells.
+     README.md:150:- **Fewer reads**: each cell is read up to about 6 times (once per pattern it belongs to). A single pass that counts each player per row, column and diagonal would read each cell once. It would still be O(n²) and the code would be harder to follow.
+
+● Bash(sed -n 140,155p README.md)
+  ⎿  | `WIN_PATTERNS` | O(n²) once | O(n²) |
+     | `checkWinner` | O(n²) | O(1) extra |
+     | `anyMovesLeft` | O(n²) | O(n²) for the `flat()` copy |
+     | `isGameOver` | O(n²) | O(n²), from `anyMovesLeft` |
+
+     O(n²) time is the best possible: a board with no winner has n² cells, and you can't confirm nobody won without looking at every one.
+
+     Trade-offs, neither worth changing at 4x4:
+
+     - **`anyMovesLeft` memory**: `board.some((row) => row.includes(null))` would avoid the copy (O(1) extra space). `flat()` was kept because it reads more simply, and the copy is only 16 cells.
+     - **Fewer reads**: each cell is read up to about 6 times (once per pattern it belongs to). A single pass that counts each player per row, column and diagonal would read each cell once. It would still be O(n²) and the code would be harder to follow.

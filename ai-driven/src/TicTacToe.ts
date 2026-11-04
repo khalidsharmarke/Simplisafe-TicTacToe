@@ -30,7 +30,7 @@ export abstract class TicTacToe {
   }
 
   public static anyMovesLeft(board: Board): boolean {
-    return board.flat().includes(null);
+    return board.some((row) => row.includes(null));
   }
 
   public static isGameOver(board: Board): boolean {
