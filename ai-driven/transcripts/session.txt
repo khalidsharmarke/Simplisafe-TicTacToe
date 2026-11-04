@@ -580,3 +580,70 @@
 ● Bash(node -e "import('./src/TicTacToe.ts').then(({TicTacToe:T})=>{const b=[['X','X',null,null],['X','X','O',null],[null,'O',null,null],[null,null,'O',null]];console.log(T.checkWinner(b),T.anyMovesLeft(b),T.isGameOver(b))})" && npm run save-transcript >/dev/null && git add -A . && git commit -qm "Add ai-driven README with test instructions and checkWinner walkthrough
 
        Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1)
+  ⎿  X true true
+     e1b489b Add ai-driven README with test instructions and checkWinner walkthrough
+
+● I've added `ai-driven/README.md` and committed it as `e1b489b`. It covers:
+
+  - **Running the tests:** `npm install`, `npm test` and `npm run typecheck`. It needs Node 22.18+ or 23.6+, the first versions that run `.ts` files directly.
+  - **A usage example:** I ran it against the real code, and it returns `X`, `true`, `true` as the README says.
+  - **A plain-English walkthrough of `checkWinner`**, referenced by line number.
+
+  **Line 19**, as the README explains it, builds the nine 2×2 boxes:
+  - Each box is named by its top-left cell, which can only be in rows 0–2 and columns 0–2. A box starting in row 3 or column 3 would hang off the board, so that gives 3 × 3 = 9 boxes.
+  - For a top-left cell `[r, c]`, the box is `[r,c] [r,c+1] [r+1,c] [r+1,c+1]`.
+  - The `flatMap`/`map` pair is a nested loop over rows and columns. `flatMap` joins the results into one list of 9 boxes, and the leading `...` adds them to the pattern list.
+  - The README includes a small picture of one example box.
+
+  The line numbers are written out by hand, so they'll be wrong if `TicTacToe.ts` changes and the README isn't updated.
+
+> Ok lets now document the space and time complexities
+
+● Edit(/home/ksharmarke/claude-stuffs/job-app-projects/Simplisafe-8249577/ai-driven/README.md)
+  ⎿  - ### The other two methods
+     + ## Time and space complexity
+     +
+     + The board is always 4x4, so strictly every method is **O(1)**: the work never grows. To compare approaches, it helps to also ask how the code would scale on an **n×n** board, with the same win conditions: full-length rows, columns and diagonals, the 4 corners, and 2x2 boxes.
+     +
+     + ### Concrete cost on the 4x4 board
+     +
+     + | | Work per call (worst case) | Extra memory |
+     + |---|---|---|
+     + | `WIN_PATTERNS` (built once at load) | 19 patterns, 76 positions | 76 stored positions, held for the program's lifetime |
+     + | `checkWinner` | 76 cell reads | none (a few loop variables) |
+     + | `anyMovesLeft` | 16 cell reads | one 16-cell list from `flat()` |
+     + | `isGameOver` | 76 + 16 = 92 cell reads | same as `anyMovesLeft` |
+     +
+     + ### Scaling to an n×n board
+     +
+     + | Pattern | How many | Cells each | Total cells |
+     + |---|---|---|---|
+     + | Rows | n | n | n² |
+     + | Columns | n | n | n² |
+     + | Diagonals | 2 | n | 2n |
+     + | Corners | 1 | 4 | 4 |
+     + | 2x2 boxes | (n−1)² | 4 | 4(n−1)² |
+     +
+     + Adding it up gives about **6n² cell reads**, so:
+     +
+     + | | Time | Space |
+     + |---|---|---|
+     + | `WIN_PATTERNS` | O(n²) once | O(n²) |
+     + | `checkWinner` | O(n²) | O(1) extra |
+     + | `anyMovesLeft` | O(n²) | O(n²) for the `flat()` copy |
+     + | `isGameOver` | O(n²) | O(n²), from `anyMovesLeft` |
+     +
+     + O(n²) time is the best possible: a board with no winner has n² cells, and you can't confirm nobody won without looking at every one.
+     +
+     + Trade-offs, neither worth changing at 4x4:
+     +
+     + - **`anyMovesLeft` memory**: `board.some((row) => row.includes(null))` would avoid the copy (O(1) extra space). `flat()` was kept because it reads more simply, and the copy is only 16 cells.
+     + - **Fewer reads**: each cell is read up to about 6 times (once per pattern it belongs to). A single pass that counts each player per row, column and diagonal would read each cell once. It would still be O(n²) and the code would be harder to follow.
+     +
+     … +1 lines
+  ⎿  The file /home/ksharmarke/claude-stuffs/job-app-projects/Simplisafe-8249577/ai-driven/README.md has been updated successfully. (file state is current in your context — no need to Read it back)
+
+● Bash(npm run save-transcript >/dev/null && git add -A . && git commit -qm "Document time and space complexity
+
+       Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1)
+  ⎿  c0f7c16 Document time and space complexity

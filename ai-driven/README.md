@@ -109,3 +109,42 @@ return null;
 
 - `anyMovesLeft`: `board.flat()` lays the 4 rows out as one list of 16 cells, and `.includes(null)` asks "is any of them empty?"
 - `isGameOver`: the game is over if `checkWinner` found a winner, **or** there are no moves left. If there's a winner, the `||` skips the second check.
+
+## Time and space complexity
+
+The board is always 4x4, so strictly every method is **O(1)**: the work never grows. To compare approaches, it helps to also ask how the code would scale on an **n×n** board, with the same win conditions: full-length rows, columns and diagonals, the 4 corners, and 2x2 boxes.
+
+### Concrete cost on the 4x4 board
+
+| | Work per call (worst case) | Extra memory |
+|---|---|---|
+| `WIN_PATTERNS` (built once at load) | 19 patterns, 76 positions | 76 stored positions, held for the program's lifetime |
+| `checkWinner` | 76 cell reads | none (a few loop variables) |
+| `anyMovesLeft` | 16 cell reads | one 16-cell list from `flat()` |
+| `isGameOver` | 76 + 16 = 92 cell reads | same as `anyMovesLeft` |
+
+### Scaling to an n×n board
+
+| Pattern | How many | Cells each | Total cells |
+|---|---|---|---|
+| Rows | n | n | n² |
+| Columns | n | n | n² |
+| Diagonals | 2 | n | 2n |
+| Corners | 1 | 4 | 4 |
+| 2x2 boxes | (n−1)² | 4 | 4(n−1)² |
+
+Adding it up gives about **6n² cell reads**, so:
+
+| | Time | Space |
+|---|---|---|
+| `WIN_PATTERNS` | O(n²) once | O(n²) |
+| `checkWinner` | O(n²) | O(1) extra |
+| `anyMovesLeft` | O(n²) | O(n²) for the `flat()` copy |
+| `isGameOver` | O(n²) | O(n²), from `anyMovesLeft` |
+
+O(n²) time is the best possible: a board with no winner has n² cells, and you can't confirm nobody won without looking at every one.
+
+Trade-offs, neither worth changing at 4x4:
+
+- **`anyMovesLeft` memory**: `board.some((row) => row.includes(null))` would avoid the copy (O(1) extra space). `flat()` was kept because it reads more simply, and the copy is only 16 cells.
+- **Fewer reads**: each cell is read up to about 6 times (once per pattern it belongs to). A single pass that counts each player per row, column and diagonal would read each cell once. It would still be O(n²) and the code would be harder to follow.
