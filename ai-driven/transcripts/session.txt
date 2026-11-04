@@ -356,3 +356,38 @@
      ℹ fail 1
      ✖ failing tests:
      ✖ game is not over with no winner and moves left (0.175225ms)
+
+● Bash(npm run save-transcript >/dev/null && git add -A . && git commit -qm "Implement anyMovesLeft (green)
+
+       Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1)
+  ⎿  ee4bd12 Implement anyMovesLeft (green)
+
+● `anyMovesLeft` is done and committed as `ee4bd12`, and its 3 tests pass:
+
+  ```ts
+  public static anyMovesLeft(board: Board): boolean {
+    return board.flat().includes(null);
+  }
+  ```
+
+  `flat()` turns the 4×4 grid into a list of 16 cells, and `includes(null)` returns true as soon as it finds an empty one. You could also write `board.some(row => row.includes(null))`, which skips building the flat list, but on 16 cells that doesn't matter and the flat version is easier to read.
+
+  My test filter (`'moves left'`) also matched one `isGameOver` test, "game is not over with no winner and moves left". It still fails because `isGameOver` isn't written yet.
+
+  Next is `checkWinner`, which is where the real design choices are.
+
+> looks good to me. isGameOver should be 2 calls: one to check if either player won, if not then return whether there are any moves left.
+
+● Bash(python3 - <<'EOF'
+       p='src/TicTacToe.ts'
+       s=open(p).read()
+       old="""  public static isGameOver(board: Board): boolean {
+           throw new Error('not implemented');"""
+       new="""  public static isGameOver(board: Board): boolean {
+           return TicTacToe.checkWinner(board) !== null || !TicTacToe.anyMovesLeft(board);"""
+       assert old in s
+       open(p,'w').write(s.replace(old,new))
+       EOF
+       npm run typecheck >/dev/null && npm test 2>&1 | grep -E '^ℹ (pass|fail)'; npm run save-transcript >/dev/null && git add -A . && git commit -qm "Implement isGameOver via checkWinner and anyMovesLeft
+
+       Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1)

@@ -15,6 +15,6 @@ export abstract class TicTacToe {
   }
 
   public static isGameOver(board: Board): boolean {
-    throw new Error('not implemented');
+    return TicTacToe.checkWinner(board) !== null || !TicTacToe.anyMovesLeft(board);
   }
 }
