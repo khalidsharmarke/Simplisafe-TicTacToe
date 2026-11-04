@@ -822,3 +822,31 @@
 ● Bash(sed -i 's/^Trade-off not taken:$/Trade-offs not taken:/' README.md && npm run save-transcript >/dev/null && git add -A . && git commit -qm "README: note incremental last-move check as the real saving
 
        Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1)
+  ⎿  f93d790 README: note incremental last-move check as the real saving
+     [This command modified 1 file you've previously read: README.md. Call Read before editing.]
+
+● I've added the point to the trade-offs list in the README's time complexity section, committed as `f93d790`. The new bullet says:
+
+  > **Checking only the last move**: the bigger saving needs a solver that keeps state. If it knew which cell was just played, it would only need to check the patterns that pass through that cell: 3 to 7 of them on a 4x4 board, or O(n) cells on an n×n board, instead of a full O(n²) scan. That isn't possible with this API, because each call receives a whole board with no history of moves.
+
+  Since that list now has two items, I also changed its heading from "Trade-off not taken" to "Trade-offs not taken". The code is unchanged.
+
+> add the 2 approaches to optimizing what we currently have as sub-points for the fewer reads paragraph, just describe them no need to add the impl
+
+● Bash(grep -n 'Fewer reads' README.md)
+  ⎿  149:- **Fewer reads**: each cell is read up to about 6 times (once per pattern it belongs to). A single pass that counts each player per row, column and diagonal would read each cell once. It would still be O(n²) and the code would be harder to follow.
+
+● Bash(python3 - <<'EOF'
+       p='README.md'
+       s=open(p).read()
+       old="- **Fewer reads**: each cell is read up to about 6 times (once per pattern it belongs to). A single pass that counts each player per row, column and diagonal would read each cell once. It would still be O(n²) and the code would be harder to follow.\n"
+       new="""- **Fewer reads**: each cell is read up to about 6 times (once per pattern it belongs to). Both options below read each of the 16 cells exactly once. Both are still O(n²), and both are harder to check by eye than the plain list of patterns. Neither is a clear win at 4x4: the current version skips a pattern as soon as its first cell is empty or a cell doesn't match, so on a sparse board it often reads fewer than 16 cells.
+         - **One running total per pattern**: count X as +1, O as −1 and empty as 0, and keep a total for each of the 19 patterns. A lookup table, built once, lists the patterns each cell belongs to. In one pass over the board, add each filled cell's value to the totals of its patterns. A total of +4 is only possible if all four cells are X, and −4 only if all four are O. This cuts reads from 76 to 16, but each filled cell still updates every total it belongs to, so the worst case is still 76 updates. The work moves rather than shrinks.
+         - **Represent each player's pieces as one number**: in one pass, record each player's pieces as a 16-bit number, with bit `r*4 + c` set when they own that cell. Each pattern is also stored once as a 16-bit number (its "mask"), and a player wins if every bit in a mask is set in their number: `(pieces & mask) === mask`. That makes 16 reads, then 19 checks that are each one bitwise AND and compare, and `anyMovesLeft` becomes `(x | o) !== 0xFFFF`. Game engines commonly use this technique. One limit: JavaScript bitwise operators only work on 32 bits, so beyond a 5x5 board it would need `BigInt`.
+       """
+       assert s.count(old)==1
+       open(p,'w').write(s.replace(old,new))
+       EOF
+       npm run save-transcript >/dev/null && git add -A . && git commit -qm "README: describe running-total and bitboard alternatives under fewer reads
+
+       Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1)
