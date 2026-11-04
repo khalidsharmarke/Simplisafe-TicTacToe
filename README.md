@@ -9,22 +9,15 @@ This repo has two independent solutions to the same exercise (the prompt is belo
 
 Each directory is a standalone TypeScript project with its own README covering setup, how to run its tests, and how it works.
 
-## Running the AI-driven solution
-
-```sh
-cd ai-driven
-npm install
-npm test
-```
-
-Requires Node.js 22.18+ or 23.6+. See [`ai-driven/README.md`](ai-driven/README.md) for:
-- the API;
-- a walkthrough of how `checkWinner` works;
-- time and space complexity, including the optimizations considered and not taken.
-
 ## AI session transcripts
 
-As the prompt asks, the transcript of the AI session is included in [`ai-driven/transcripts/`](ai-driven/transcripts/). It is the raw Claude Code session log (JSON Lines, one event per line), and every commit in the `ai-driven/` history corresponds to one step of that conversation.
+As the prompt asks, the transcript of the AI session is included as plain text in [`ai-driven/transcripts/session.txt`](ai-driven/transcripts/session.txt). It is laid out the way the Claude Code terminal shows a session:
+
+- `>` marks a user prompt.
+- `●` marks a Claude reply or a tool call (`Bash(...)`, `Write(...)`, `Edit(...)`).
+- `⎿` marks that tool call's output, cut off after 40 lines.
+
+Each commit in the `ai-driven/` history corresponds to one step of that conversation, and includes the transcript up to that point. The transcript was generated from the raw Claude Code session log, with private account details (email, account IDs and personal Claude Code settings) redacted.
 
 ## The exercise prompt
 

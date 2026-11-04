@@ -13,7 +13,7 @@ npm test           # runs the test suite with Node's built-in test runner
 npm run typecheck  # runs the TypeScript compiler without emitting files
 ```
 
-Tests live in `src/TicTacToe.test.ts`. AI session transcripts are in `transcripts/`.
+Tests live in `src/TicTacToe.test.ts`. The AI session transcript is `transcripts/session.txt`.
 
 ## Usage
 

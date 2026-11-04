@@ -881,3 +881,95 @@
 
        Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1)
   ⎿  989c881 README: describe search-from-last-move alternative
+
+● Bash(sed -i 's/or once it has found four in a row\./or once all four cells of a pattern match./' README.md && npm run save-transcript >/dev/null && git add -A . && git commit -q --amend --no-edit && git log --oneline -1)
+  ⎿  c28077c README: describe search-from-last-move alternative
+     [This command modified 1 file you've previously read: README.md. Call Read before editing.]
+
+● I've added a sub-point under "Checking only the last move" in the README, committed as `c28077c`. It says that knowing the last move would let the code search outward from that cell instead of scanning every pattern. It would check only the win conditions that can include that cell:
+
+  - **Row and column:** walk left/right along its row and up/down its column.
+  - **Diagonals:** walk along a diagonal only if the cell is on one.
+  - **Corners:** check them only if the cell is a corner.
+  - **2×2 boxes:** check only the boxes (up to 4) that contain it.
+
+  The search stops as soon as it reaches an empty cell or one that belongs to the other player, or once all four cells of a pattern match.
+
+  I described it as "similar in spirit to a BFS rooted at the last move" rather than as a BFS outright. A true BFS spreads out to every neighbouring cell, while this search only follows the rows, diagonals and boxes that pass through the move. If you want it called a BFS plainly, that's a one-word change.
+
+> Ok now we're done with our implementation, no need to continue committing transcripts. Lets update the root level readme for how this repo works
+
+● Write(/home/ksharmarke/claude-stuffs/job-app-projects/Simplisafe-8249577/README.md)
+  ⎿  # 4x4 Tic-Tac-Toe Solver
+
+     This repo has two independent solutions to the same exercise (the prompt is below), so the two approaches can be compared:
+
+     | Directory | What it is |
+     |---|---|
+     | [`self-driven/`](self-driven/) | Written by hand, without AI assistance. |
+     | [`ai-driven/`](ai-driven/) | Built test-first in a Claude Code session. It was written from scratch, without looking at `self-driven/`. |
+
+     Each directory is a standalone TypeScript project with its own README covering setup, how to run its tests, and how it works.
+
+     ## Running the AI-driven solution
+
+     ```sh
+     cd ai-driven
+     npm install
+     npm test
+     ```
+
+     Requires Node.js 22.18+ or 23.6+. See [`ai-driven/README.md`](ai-driven/README.md) for:
+     - the API;
+     - a walkthrough of how `checkWinner` works;
+     - time and space complexity, including the optimizations considered and not taken.
+
+     ## AI session transcripts
+
+     As the prompt asks, the transcript of the AI session is included in [`ai-driven/transcripts/`](ai-driven/transcripts/). It is the raw Claude Code session log (JSON Lines, one event per line), and every commit in the `ai-driven/` history corresponds to one step of that conversation.
+
+     ## The exercise prompt
+
+     Implement a 4x4 Tic-Tac-Toe/Connect Four solver. The program should take in a representation of a 4x4 board, and tell you the winner if any.
+     Victory is determined by one of five conditions:
+
+     - Vertical
+     - Horizontal
+     - Diagonal
+     - All Four Corner
+     - 2x2 box
+
+     Implementing a UI is not necessary: we are only interested in your implementation of the win condition.
+     … +11 lines
+  ⎿  The file /home/ksharmarke/claude-stuffs/job-app-projects/Simplisafe-8249577/README.md has been updated successfully. (file state is current in your context — no need to Read it back)
+
+● Bash(cd /home/ksharmarke/claude-stuffs/job-app-projects/Simplisafe-8249577 && git add README.md && git commit -qm "Root README: explain repo layout, how to run, and transcripts
+
+       Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git log --oneline -1 && git status --short)
+  ⎿  40081c3 Root README: explain repo layout, how to run, and transcripts
+
+● Bash(git log --oneline --stat -- self-driven | head)
+  ⎿  956a714 update readme
+      self-driven/README.md | 2 +-
+      1 file changed, 1 insertion(+), 1 deletion(-)
+     6d2c390 self driven implementation of the solver
+      self-driven/README.md         |   49 ++
+      self-driven/package-lock.json | 1527 +++++++++++++++++++++++++++++++++++++++++
+      self-driven/package.json      |   17 +
+      self-driven/solver.test.ts    |   97 +++
+      self-driven/solver.ts         |  148 ++++
+      5 files changed, 1838 insertions(+)
+
+● I've rewritten the root `README.md` to explain how the repo works and committed it as `40081c3`, without a new transcript. It now covers:
+
+  - **The two solutions:**
+    - `self-driven/` is the hand-written one.
+    - `ai-driven/` was built test-first in this session, without looking at `self-driven/`.
+  - **How to run the AI-driven solution:** `cd ai-driven && npm install && npm test`, plus a pointer to its README for the API, the `checkWinner` walkthrough and the complexity notes.
+  - **Transcripts:** where they are, that they're the raw Claude Code session log (one JSON event per line), and that each `ai-driven/` commit matches one step of the conversation.
+  - **The original prompt:** kept as is, with the win conditions as a list and the class skeleton in a code block.
+
+  Two things to check:
+
+  - **`self-driven/` run steps:** I didn't add them, since I haven't read that directory. The README just points to `self-driven/README.md`. If its steps differ from `npm install && npm test`, you may want to add them to the root README.
+  - **The saved transcript is incomplete:** it was last saved one response before this one, so it doesn't include this exchange or the previous one. If reviewers should see the whole session, run `npm run save-transcript` in `ai-driven/` once more at the very end and commit it.
