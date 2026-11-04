@@ -24,7 +24,7 @@ If a board somehow has winning lines for both players, `checkWinner` returns whi
 - **Pluggable win conditions**: each condition is its own method with the same `(board, row, col) => boolean` signature, collected in a `winConditions` array. Adding a new rule means writing one method and adding it to the list.
 - **Per-cell checks**: each condition asks "does the player in this cell win this way?". Rows and columns check the cell's own line; diagonals and corners first check that the cell is on them; boxes use offsets from the cell with a bounds check.
 - **Early exit**: every check returns `false` on the first cell that doesn't match, and `checkWinner` returns on the first win it finds.
-- **Valid Board Check**: We don't check if a board state makes sense. For exmaple in connect four, you'd need to check if any given board piece shouldn't have empty space beneath it.
+- **Valid Board Check**: We don't check if a board state makes sense. For exmaple in connect four, you'd need to check if any given board piece shouldn't have empty space beneath it
 
 ## Complexity
 
